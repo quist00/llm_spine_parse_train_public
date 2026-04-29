@@ -1,0 +1,87 @@
+services:
+  llm-spine-campus:
+    image: ${CAMPUS_IMAGE:-llm-spine-parse:dev}
+    container_name: llm-spine-campus
+    platform: linux/amd64
+    runtime: nvidia
+
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - JUPYTER_ENABLE_LAB=yes
+      - HF_HOME=${HF_HOME:-/home/jovyan/.hf_home}
+
+    # Keep existing repo workflow, but persist heavy assets under /data.
+    volumes:
+      - ${HOST_REPO_ROOT:-..}:${CONTAINER_REPO_ROOT:-/home/jovyan/llm_train}:rw
+      - ${HOST_DATA_ROOT:-/data/llm_spine_parse}/hf_home:/home/jovyan/.hf_home:rw
+      - ${HOST_DATA_ROOT:-/data/llm_spine_parse}/checkpoints:/data/checkpoints:rw
+      - ${HOST_DATA_ROOT:-/data/llm_spine_parse}/input:/data/input:rw
+      - ${HOST_DATA_ROOT:-/data/llm_spine_parse}/img:/data/img:ro
+      - ${HOST_DATA_ROOT:-/data/llm_spine_parse}/logs:/data/logs:rw
+
+    ports:
+      - "8888:8888"
+      - "8000:8000"
+
+    command: start-notebook.sh --NotebookApp.token='' --NotebookApp.password=''
+
+    stdin_open: true
+    tty: true
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import torch; print(torch.cuda.is_available())"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  vllm-campus:
+    image: ${CAMPUS_IMAGE:-llm-spine-parse:dev}
+    container_name: vllm-campus
+    platform: linux/amd64
+    runtime: nvidia
+
+    depends_on:
+      llm-spine-campus:
+        condition: service_healthy
+
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - HF_HOME=${HF_HOME:-/home/jovyan/.hf_home}
+      - VLLM_DETACH=0
+      - VLLM_MODEL=${VLLM_MODEL:-Qwen/Qwen2.5-VL-7B-Instruct}
+      - VLLM_ADAPTER_NAME=${VLLM_ADAPTER_NAME:-spine_adapter}
+      - VLLM_ADAPTER_PATH=${VLLM_ADAPTER_PATH:-}
+      - VLLM_HOST=${VLLM_HOST:-0.0.0.0}
+      - VLLM_PORT=${VLLM_PORT:-8000}
+      - START_VLLM_DTYPE=${START_VLLM_DTYPE:-float16}
+      - START_VLLM_MAX_MODEL_LEN=${START_VLLM_MAX_MODEL_LEN:-}
+      - START_VLLM_LIMIT_MM_PER_PROMPT=${START_VLLM_LIMIT_MM_PER_PROMPT:-}
+      - NCCL_P2P_DISABLE=${NCCL_P2P_DISABLE:-1}
+      - NCCL_IB_DISABLE=${NCCL_IB_DISABLE:-1}
+      - NCCL_SHM_DISABLE=${NCCL_SHM_DISABLE:-1}
+      - NCCL_CUMEM_ENABLE=${NCCL_CUMEM_ENABLE:-0}
+      - VLLM_DISABLE_CUSTOM_ALL_REDUCE=${VLLM_DISABLE_CUSTOM_ALL_REDUCE:-1}
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+      - PYTORCH_CUDA_ALLOC_CONF=${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:False}
+      - XDG_CACHE_HOME=/data/vllm_cache
+      - FLASHINFER_WORKSPACE_BASE=${FLASHINFER_WORKSPACE_BASE:-/data/vllm_cache}
+      - FLASHINFER_WORKSPACE_DIR=${FLASHINFER_WORKSPACE_DIR:-/data/vllm_cache/.cache/flashinfer}
+      - VLLM_ATTENTION_BACKEND=${VLLM_ATTENTION_BACKEND:-TORCH_SDPA}
+      - VLLM_MM_ENCODER_ATTN_BACKEND=${VLLM_MM_ENCODER_ATTN_BACKEND:-TORCH_SDPA}
+
+    volumes:
+      - ${HOST_REPO_ROOT:-..}:${CONTAINER_REPO_ROOT:-/home/jovyan/llm_train}:ro
+      - ${HOST_DATA_ROOT:-/data/llm_spine_parse}/hf_home:/home/jovyan/.hf_home:rw
+      - ${HOST_DATA_ROOT:-/data/llm_spine_parse}/checkpoints:/data/checkpoints:rw
+      - ${HOST_DATA_ROOT:-/data/llm_spine_parse}/logs:/data/logs:rw
+      - ${HOST_DATA_ROOT:-/data/llm_spine_parse}/vllm_cache:/data/vllm_cache:rw
+
+    ports:
+      - "8001:8000"
+
+    command: python /home/jovyan/llm_train/tools/start_vllm_campus.py
+
+    restart: unless-stopped

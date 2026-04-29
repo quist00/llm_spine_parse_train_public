@@ -1,0 +1,58 @@
+# .dockerignore - exclude unnecessary files from Docker build context
+# Reduces build time and image size
+
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+.pytest_cache
+.coverage
+*.egg
+dist
+build
+
+# Virtual environments
+venv
+env
+.venv
+
+# IDEs
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Data & Models (mount as volumes instead)
+checkpoints/
+input/
+img/
+*.jsonl
+*.csv
+
+# Large files
+*.tar.gz
+*.zip
+*.pth
+*.safetensors
+*.ckpt
+
+# Notebooks (copied into image but execution not needed)
+.ipynb_checkpoints
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (reduce context)
+docs/
+README.md
+*.md

@@ -1,0 +1,74 @@
+img/*
+!img/.gitkeep
+*.csv
+*.json?
+awq-venv/**
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+
+# Python basics
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.env*
+
+# Packaging / build
+*.egg-info/
+.eggs/
+build/
+dist/
+pip-wheel-metadata/
+
+# Test, caches, coverage
+.pytest_cache/
+.cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+*.ipynb-*
+
+# Editors / IDE
+.vscode/
+.idea/
+
+# Training artifacts and logs
+checkpoints/
+!checkpoints/.gitkeep
+outputs/
+runs/
+logs/
+wandb/
+mlruns/
+
+# Model weights (use Git LFS if you want to version these)
+*.safetensors
+*.bin
+*.ckpt
+*.pt
+*.onnx
+
+# Large image datasets (keep a README.md if you want folders tracked)
+img/segments/**
+!img/segments/README.md
+img/segments_rotated/**
+!img/segments_rotated/README.md
+
+# Local data caches
+**/.cache/**
+.huggingface/

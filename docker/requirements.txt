@@ -1,0 +1,57 @@
+# LLM Spine Parse Train - All Dependencies
+# Training: QLoRA, PEFT, accelerate, bitsandbytes
+# Serving: vLLM with LoRA adapters on top of base models
+# Jupyter: notebook, jupyterhub
+# Utilities: datasets, pillow, OCR (optional)
+
+# Core ML/Training
+transformers>=4.44.0
+peft>=0.12.0
+accelerate>=0.33.0
+bitsandbytes>=0.43.0
+
+# Vision & Image Processing
+pillow>=10.0.0
+pillow-heif>=0.7.1
+
+# Vision-Language specific
+qwen-vl-utils>=0.0.8
+
+# Data & Datasets
+datasets>=2.18.0
+pandas>=2.1.0
+numpy>=1.24.0
+jsonlines>=4.0.0
+
+# Inference & Serving
+vllm>=0.6.0
+
+# Optional: Speed up training (uncomment for A100/H100 or modern GPUs)
+# xformers>=0.0.23
+# flash-attn>=2.5.0
+
+# Optional: OCR alternatives (if exploring non-LLM pipelines)
+# surya-ocr>=0.4.0
+# easyocr>=1.7.0
+
+# Scientific/ML Utils
+scipy>=1.11.0
+scikit-learn>=1.3.0
+tqdm>=4.66.0
+
+# Progress tracking
+pyyaml>=6.0
+
+# addition for stacks_inventory
+requests>=2.31.0
+python-dotenv>=1.0.0
+torch>=2.1.0
+torchvision>=0.16.0
+huggingface-hub>=0.17.0
+ultralytics>=8.0.0
+opencv-python>=4.8.0
+openpyxl>=3.0.0
+rapidfuzz>=2.15.0
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pydantic>=2.0.0
