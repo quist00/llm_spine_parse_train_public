@@ -48,6 +48,8 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
 
+## NRP & Docker
+Use custom image with: docker.io/quist99/llm-spine-parse:v1.2
 
 ## Training Profiles
 
