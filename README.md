@@ -2,8 +2,17 @@
 
 Train Qwen2.5-VL vision-language model with QLoRA for book spine extraction, then deploy with vLLM.
 
+## Development & AI Transparency
+
+The overall architecture, tech stack, data flows, and prompts were designed and directed by the author.
+
+A substantial portion of the code was generated using multiple large language models (primarily GitHub Copilot in autopilot mode, along with Claude, GPT models, and others). Due to the interactive, auto-complete workflow, it is not practical to attribute specific lines to any particular LLM.
+
+The generated code was reviewed and tested for efficacy, with adjustments made where needed. The final codebase reflects the intended architectural vision and quality standards.
+
+## Training Profiles
 **Three hardware profiles supported:**
-- **Home GPU** (12GB VRAM): Fast iteration and testing
+- **Home GPU** (12GB VRAM): Fast iteration and pipeline testing
 - **NRP A100 24GB**: Production training, memory-optimized
 - **NRP A100 32GB**: Production training, highest quality
 
