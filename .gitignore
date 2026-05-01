@@ -2,7 +2,8 @@ img/*
 !img/.gitkeep
 *.csv
 *.json?
-awq-venv/**
+training_output/**
+!training_output/.gitkeep
 
 # macOS
 .DS_Store
