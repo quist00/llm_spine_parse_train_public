@@ -45,12 +45,14 @@ import sys
 import time
 from pathlib import Path
 
+os.environ.setdefault("XDG_CACHE_HOME", str(Path.home() / ".cache"))
+os.environ.setdefault("VLLM_CACHE_DIR", str(Path.home() / ".cache" / "vllm"))
 # ---------------------------------------------------------------------------
 # Defaults — override via env or CLI args
 # ---------------------------------------------------------------------------
 DEFAULTS = {
     "model": "Qwen/Qwen2.5-VL-7B-Instruct",
-    "adapter_path": "checkpoints/qwen2_5_vl_lora_512Res/adapter_model",
+    "adapter_path": "../training_output/qwen2_5_vl_lora_full/adapter_model",
     "adapter_name": "spine_adapter",
     "mm_encoder_attn_backend": "",
     "port": 8000,
@@ -95,20 +97,19 @@ def ok(msg: str) -> None:
 
 
 def configure_hf_cache_env() -> str:
-    """Ensure Hugging Face cache env vars are set for this process and child processes."""
-    default_hf_home = str(Path.home() / "llm_train" / ".hf_home")
-    hf_home = os.environ.get("HF_HOME", default_hf_home)
-    hub_cache = os.environ.get("HF_HUB_CACHE", str(Path(hf_home) / "hub"))
-    transformers_cache = os.environ.get("TRANSFORMERS_CACHE", hub_cache)
-
-    os.environ["HF_HOME"] = hf_home
-    os.environ["HF_HUB_CACHE"] = hub_cache
-    os.environ["TRANSFORMERS_CACHE"] = transformers_cache
-
-    ok(f"HF cache configured: HF_HOME={hf_home}")
-    ok(f"HF hub cache: {hub_cache}")
-    ok(f"Transformers cache: {transformers_cache}")
-    return hf_home
+    """Set Hugging Face to use the default cache location."""
+    
+    # Default HF cache location on this system
+    default_cache = str(Path.home() / ".cache" / "huggingface")
+    
+    os.environ["HF_HOME"] = default_cache
+    os.environ["HF_HUB_CACHE"] = str(Path(default_cache) / "hub")
+    os.environ["TRANSFORMERS_CACHE"] = str(Path(default_cache) / "hub")
+    
+    ok(f"HF cache configured (default): {default_cache}")
+    ok(f"HF_HUB_CACHE: {os.environ['HF_HUB_CACHE']}")
+    
+    return default_cache
 
 
 # ---------------------------------------------------------------------------
