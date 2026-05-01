@@ -119,12 +119,12 @@ TRAINING_PROFILES: Dict[str, Dict[str, Any]] = {
     },
     "nrp_a100_32gb": {
         "description": "NRP A100 32GB - Production training (high quality)",
-        "batch_size": 2,                     
-        "gradient_accumulation_steps": 16,   # Effective batch = 16
-        "gradient_checkpointing": False,     # Not needed with 32GB
-        "max_length": 1024,                  # Full context window
-        "lora_r": 16,                        # Higher rank for better adapters
-        "lora_alpha": 32,
+        "batch_size": 16,                     
+        "gradient_accumulation_steps": 3,   # Effective batch = 48
+        "gradient_checkpointing": False,     
+        "max_length": 2048,                  # Full context window
+        "lora_r": 64,                        # Higher rank for better adapters
+        "lora_alpha": 128,
         "use_4bit": True,                    # Keep compatible with home inference
         "num_epochs": 3,
         "max_samples": None,                 # Full dataset

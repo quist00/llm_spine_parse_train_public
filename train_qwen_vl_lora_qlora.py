@@ -762,12 +762,7 @@ def main():
     print(f"\n{'='*60}")
     print("TRAINING COMPLETE")
     print(f"{'='*60}")
-    print(f"\nNext steps:")
-    print(f"1. Test adapters: python test_lora_inference.py --adapter_dir {adapter_path} --test_image img/segments/test.jpg")
-    print(f"2. Launch vLLM with base + adapter: python -m vllm.entrypoints.openai.api_server --model Qwen/Qwen2.5-VL-7B-Instruct --enable-lora --lora-modules spine_adapter={adapter_path} --host 127.0.0.1 --port 8000")
-    print(f"3. Verify adapter is loaded: curl -s http://127.0.0.1:8000/v1/models")
-    print(f"4. Test inference against adapter endpoint: send requests with model='spine_adapter' to /v1/completions or /v1/chat/completions")
-
+   
 
 if __name__ == "__main__":
     main()
