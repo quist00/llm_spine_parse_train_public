@@ -96,6 +96,19 @@ def ok(msg: str) -> None:
     print(f"[OK] {msg}")
 
 
+def resolve_user_path(raw_path: str, repo_root: Path) -> Path:
+    """Resolve user-provided paths consistently across notebook and terminal CWDs."""
+    path = Path(raw_path).expanduser()
+    if path.is_absolute():
+        return path
+
+    cwd_candidate = (Path.cwd() / path).resolve()
+    if cwd_candidate.exists():
+        return cwd_candidate
+
+    return (repo_root / path).resolve()
+
+
 def configure_hf_cache_env() -> str:
     """Set Hugging Face to use the default cache location."""
     
@@ -431,6 +444,7 @@ def main() -> None:
         help="Launch vLLM in background and write logs to VLLM_LOG_PATH (default: foreground)",
     )
     args = parser.parse_args()
+    repo_root = Path(__file__).resolve().parents[1]
 
     hf_home = configure_hf_cache_env()
 
@@ -444,10 +458,8 @@ def main() -> None:
     check_torch_cuda()
     check_vllm_extensions(gpu_info["cap_str"])
 
-    adapter_path = Path(args.adapter_path) if args.adapter_path else None
+    adapter_path = resolve_user_path(args.adapter_path, repo_root) if args.adapter_path else None
     if adapter_path is not None:
-        if not adapter_path.is_absolute():
-            adapter_path = Path.cwd() / adapter_path
         check_adapter_path(adapter_path)
 
     vram_profile = compute_vram_profile(gpu_info["total_mb"], gpu_info["free_mb"])
