@@ -30,7 +30,8 @@ Each line is a JSON object:
   "image": "data:image/jpeg;base64,/9j/4AAQ..."
 }
 ```
-
+### Training Data Used for LLM
+[data](https://www.dropbox.com/scl/fo/8eaj4mifu8muv7najpavm/AMzaWGCdoCy4yzRz5AuxBf8?rlkey=t2y9v60dyg9qa95y96cy09ohb&st=8ek9v4q9&dl=0)
 ---
 
 ## Setup
