@@ -38,11 +38,14 @@ Environment variable overrides:
 """
 
 import argparse
+import json
 import os
 import signal
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 os.environ.setdefault("XDG_CACHE_HOME", str(Path.home() / ".cache"))
@@ -107,6 +110,59 @@ def resolve_user_path(raw_path: str, repo_root: Path) -> Path:
         return cwd_candidate
 
     return (repo_root / path).resolve()
+
+
+def print_troubleshooting_tips(cfg: dict, log_path: Path, detach: bool) -> None:
+    endpoint = f"http://{cfg['host']}:{cfg['port']}"
+    print("[TROUBLESHOOTING] If smoke test hangs or times out:")
+    print(f"  1) Verify server health: curl -s {endpoint}/v1/models | cat")
+    print(f"  2) Confirm adapter appears in /v1/models: expected '{cfg['adapter_name']}'")
+    if detach:
+        print(f"  3) Inspect logs: tail -f {log_path}")
+    else:
+        print("  3) Foreground mode: inspect the current terminal output for load/progress/errors")
+    print("  4) For Qwen2.5-VL, prefer /v1/chat/completions for text smoke tests")
+    print("  5) If needed, restart cleanly: pkill -f vllm.entrypoints.openai.api_server")
+
+
+def run_smoke_check(cfg: dict, timeout_seconds: int = 90, interval_seconds: int = 3) -> bool:
+    endpoint = f"http://{cfg['host']}:{cfg['port']}/v1/models"
+    print(f"[SMOKE CHECK] Waiting for readiness at {endpoint} (timeout={timeout_seconds}s)...")
+
+    deadline = time.time() + timeout_seconds
+    attempt = 0
+    while time.time() < deadline:
+        attempt += 1
+        try:
+            req = urllib.request.Request(endpoint, method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                body = resp.read().decode("utf-8", errors="replace")
+                if 200 <= resp.status < 300:
+                    try:
+                        payload = json.loads(body)
+                    except json.JSONDecodeError:
+                        payload = {}
+
+                    model_ids = [
+                        item.get("id")
+                        for item in payload.get("data", [])
+                        if isinstance(item, dict) and item.get("id")
+                    ]
+                    print(f"[SMOKE CHECK PASS] /v1/models responded with HTTP {resp.status}")
+                    if model_ids:
+                        print(f"[SMOKE CHECK] Models available: {', '.join(model_ids[:5])}")
+                    return True
+        except urllib.error.URLError:
+            pass
+        except Exception:
+            pass
+
+        if attempt % 5 == 0:
+            print(f"[SMOKE CHECK] Still waiting... ({attempt} attempts)")
+        time.sleep(interval_seconds)
+
+    print("[SMOKE CHECK FAIL] Timed out waiting for /v1/models readiness.")
+    return False
 
 
 def configure_hf_cache_env() -> str:
@@ -319,7 +375,7 @@ def build_command(cfg: dict) -> list:
     return cmd
 
 
-def launch(cfg: dict, dry_run: bool, detach: bool) -> None:
+def launch(cfg: dict, dry_run: bool, detach: bool, smoke_check: bool) -> None:
     env = os.environ.copy()
     hf_home = cfg.get("hf_home", "")
     if hf_home:
@@ -346,7 +402,10 @@ def launch(cfg: dict, dry_run: bool, detach: bool) -> None:
     print(f"  GPU      : {cfg['gpu_name']}")
     print(f"  Model    : {cfg['model']}")
     print(f"  DType    : {cfg['dtype']}")
-    print(f"  Adapter  : {cfg['adapter_name']} → {cfg['adapter_path']}")
+    if cfg["adapter_path"]:
+        print(f"  Adapter  : {cfg['adapter_name']} → {cfg['adapter_path']}")
+    else:
+        print("  Adapter  : disabled (no adapter path provided)")
     print(f"  Util     : {cfg['util']}  max_len={cfg['max_model_len']}  eager={cfg['enforce_eager']}")
     print(f"  MM Limit : {cfg['limit_mm_per_prompt']}")
     if cfg["enable_auto_tool_choice"]:
@@ -362,6 +421,7 @@ def launch(cfg: dict, dry_run: bool, detach: bool) -> None:
     if dry_run:
         print("[DRY RUN] Command that would be executed:")
         print("  " + " \\\n  ".join(cmd))
+        print_troubleshooting_tips(cfg, log_path, detach=detach)
         return
 
     if detach:
@@ -376,10 +436,16 @@ def launch(cfg: dict, dry_run: bool, detach: bool) -> None:
         print(f"[INFO] vLLM started with PID {proc.pid}  (session-leader, survives terminal close)")
         print(f"[INFO] Monitor: tail -f {log_path}")
         print(f"[INFO] Check:   curl -s http://{cfg['host']}:{cfg['port']}/v1/models")
+        print_troubleshooting_tips(cfg, log_path, detach=True)
+        if smoke_check:
+            ready = run_smoke_check(cfg)
+            if not ready:
+                print("[SMOKE CHECK] Tip: inspect logs and verify adapter path/model availability.")
         return
 
     print("[INFO] Launching vLLM in foreground (container-safe mode).")
     print(f"[INFO] Check: curl -s http://{cfg['host']}:{cfg['port']}/v1/models")
+    print_troubleshooting_tips(cfg, log_path, detach=False)
     # Foreground mode keeps this process as PID 1 in Docker so the container stays healthy.
     rc = subprocess.call(cmd, env=env)
     if rc != 0:
@@ -442,6 +508,11 @@ def main() -> None:
         action="store_true",
         default=os.environ.get("VLLM_DETACH", "").lower() in {"1", "true", "yes"},
         help="Launch vLLM in background and write logs to VLLM_LOG_PATH (default: foreground)",
+    )
+    parser.add_argument(
+        "--smoke-check",
+        action="store_true",
+        help="After detached launch, poll /v1/models and report readiness PASS/FAIL.",
     )
     args = parser.parse_args()
     repo_root = Path(__file__).resolve().parents[1]
@@ -526,7 +597,7 @@ def main() -> None:
 
     # --- Kill stale server and launch ---
     kill_existing_server()
-    launch(cfg, dry_run=args.dry_run, detach=args.detach)
+    launch(cfg, dry_run=args.dry_run, detach=args.detach, smoke_check=args.smoke_check)
 
 
 if __name__ == "__main__":
